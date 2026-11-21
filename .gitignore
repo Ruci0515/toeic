@@ -5,3 +5,4 @@ Thumbs.db
 # 測試截圖與記錄
 /tests/screenshots/
 *.log
+/tests/voice_sample.mp3

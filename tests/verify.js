@@ -196,6 +196,7 @@ async function checkMobile() {
     const lis = await evaluate(`(async () => {
       const s = window.BESTEP_APP.getState();
       const audioOnly = document.querySelectorAll('.option-text.audio-only').length;
+      const ph = document.querySelector('.question-card img, .figure-card img'); const photo = !!ph;
       document.querySelector('[data-action="official-start"]').click();
       const a = s.official.audio;
       for (let i = 0; i < 50 && !(a.readyState >= 1); i += 1) await new Promise((r) => setTimeout(r, 100));
@@ -206,14 +207,14 @@ async function checkMobile() {
       document.getElementById('skipGapBtn').click();
       await new Promise((r) => setTimeout(r, 300));
       const skipped = a.currentTime >= g[1] - 0.6;
-      const seg = s.official.timeline.segments.find((x) => x.firstQ === 10);
+      const seg = s.official.timeline.segments.find((x) => x.firstQ === 32);
       a.currentTime = seg.start + 1;
       await new Promise((r) => setTimeout(r, 1200));
       const grp = s.sections.listening.groups[s.listeningGroupIndex].questions.map((q) => q.num).join('-');
-      return { audioOnly, playing: !a.paused, skipped, grp };
+      return { audioOnly, photo, playing: !a.paused, skipped, grp };
     })()`);
-    check(lis.audioOnly === 3 && lis.playing, 'Part 2 選項只用聽的（畫面不顯示選項文字），音檔連續播放', JSON.stringify(lis));
-    check(lis.skipped && lis.grp === '10-11-12', '可跳過作答空白；播到 Part 3 自動切到第 10–12 題', JSON.stringify(lis));
+    check(lis.audioOnly === 4 && lis.photo && lis.playing, 'Part 1 照片題：照片顯示、選項只用聽的（畫面不顯示選項文字），音檔連續播放', JSON.stringify(lis));
+    check(lis.skipped && lis.grp === '32-33-34', '可跳過作答空白；播到 Part 3 自動切到第 32–34 題', JSON.stringify(lis));
     check(await overflow() <= 1, '聽力畫面無水平捲動');
     await shot('t02-listening.png');
 
@@ -230,7 +231,7 @@ async function checkMobile() {
     await sleep(500);
     const rd = await evaluate(`(() => {
       const s = window.BESTEP_APP.getState();
-      const q = s.sections.reading.questions.find((x) => x.num === 121);
+      const q = s.sections.reading.questions.find((x) => x.num === 176);
       document.querySelector('.answer-cell[data-key="' + q.key + '"]').click();
       const cards = document.querySelectorAll('.question-panel .question-card').length;
       const dial = document.getElementById('paceDial');

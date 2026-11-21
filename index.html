@@ -58,7 +58,7 @@
         <p>原創多益題目，依正式流程播放、計時、閱卷；每做一次就自動記錄分數、用時與日期，畫出你的學習曲線。</p>
         <div class="hero-stats">
           <div class="hero-stat"><strong>Part 2–7</strong><span>多益題型</span></div>
-          <div class="hero-stat"><strong>60</strong><span>題／回（半量）</span></div>
+          <div class="hero-stat"><strong>200</strong><span>題／回（完整）</span></div>
           <div class="hero-stat"><strong>990</strong><span>估計總分</span></div>
           <div class="hero-stat"><strong>📈</strong><span>成績紀錄</span></div>
         </div>
@@ -76,8 +76,8 @@
         <div class="feature-grid">
           <article class="feature-card">
             <div class="feature-icon">🔊</div>
-            <h3>多口音語音連續播放</h3>
-            <p>美、英、澳、愛爾蘭口音輪流出現，比照多益流程：Part 2 選項只用聽的、Part 3／4 會唸題目並留作答時間。可跳過等待、切換 1.2× 語速。</p>
+            <h3>AI 語音連續播放</h3>
+            <p>AI 真人感語音（美、英口音男女聲），比照多益流程：Part 1／2 選項只用聽的、Part 3／4 會唸題目並留作答時間。可跳過等待、切換 1.2× 語速。</p>
           </article>
           <article class="feature-card">
             <div class="feature-icon">⏱️</div>
@@ -117,7 +117,7 @@
           <div class="exam-progress" role="progressbar" aria-label="作答進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="examProgressBar">
             <div id="examProgressFill"></div>
           </div>
-          <span class="exam-progress-text" id="examProgressText">0 / 60 題</span>
+          <span class="exam-progress-text" id="examProgressText">0 / 200 題</span>
         </div>
 
         <div class="exam-clock" id="examClock" data-state="normal" aria-live="polite">
@@ -156,7 +156,7 @@
                 <h3 id="answerCardTitle">答題卡</h3>
                 <p class="answer-card-sub" id="answerCardSub">點選題號快速跳題</p>
               </div>
-              <span class="answer-count" id="answerCount">0/30</span>
+              <span class="answer-count" id="answerCount">0/100</span>
             </div>
             <div class="answer-grid" id="answerGrid"></div>
             <div class="answer-legend">
@@ -198,7 +198,7 @@
   <footer class="app-footer">
     <div class="footer-inner">
       <span>TOEIC 模擬測驗 · 個人練習站</span>
-      <span>原創題目；語音由電腦合成。分數為估計值。</span>
+      <span>原創題目；語音由 Kokoro AI 合成；Part 1 照片為 CC0 公眾領域圖片。分數為估計值。</span>
     </div>
   </footer>
 
@@ -267,8 +267,8 @@
           <input type="radio" name="examMode" value="full" checked>
           <span class="mode-card-body">
             <strong>完整測驗</strong>
-            <small>聽力 30 題 ＋ 閱讀 30 題，依正式流程連續進行。</small>
-            <em>約 40 分鐘</em>
+            <small>聽力 100 題 ＋ 閱讀 100 題，依正式流程連續進行。</small>
+            <em>約 1 小時 55 分</em>
           </span>
         </label>
         <label class="mode-card">
@@ -276,15 +276,15 @@
           <span class="mode-card-body">
             <strong>只考聽力</strong>
             <small>官方原音連續播放，不可暫停；適合完整練耳。</small>
-            <em>約 12 分鐘</em>
+            <em>約 38 分鐘</em>
           </span>
         </label>
         <label class="mode-card">
           <input type="radio" name="examMode" value="reading">
           <span class="mode-card-body">
             <strong>只考閱讀</strong>
-            <small>25 分鐘倒數，完整記錄每題停留配速。</small>
-            <em>25 分鐘</em>
+            <small>75 分鐘倒數，完整記錄每題停留配速。</small>
+            <em>75 分鐘</em>
           </span>
         </label>
       </div>
@@ -298,8 +298,8 @@
       </div>
 
       <div class="exam-rules">
-        <div><span>01</span>聽力按下開始後連續播放約 12 分鐘；可跳過作答空白、切換語速，播放中可自由切換題目。</div>
-        <div><span>02</span>閱讀測驗倒數 25 分鐘，時間到自動交卷。</div>
+        <div><span>01</span>聽力按下開始後連續播放約 38 分鐘；可跳過作答空白、切換語速，播放中可自由切換題目。</div>
+        <div><span>02</span>閱讀測驗倒數 75 分鐘，時間到自動交卷。</div>
         <div><span>03</span>複選題需選滿指定數量，全對才給分。</div>
       </div>
 
@@ -350,8 +350,14 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="data/test1_listening.js"></script>
-  <script src="data/test1_reading.js"></script>
+  <script src="data/test1_0meta.js"></script>
+  <script src="data/test1_1l.js"></script>
+  <script src="data/test1_2l.js"></script>
+  <script src="data/test1_3l.js"></script>
+  <script src="data/test1_4r.js"></script>
+  <script src="data/test1_5r.js"></script>
+  <script src="data/test1_6r.js"></script>
+  <script src="data/test1_9end.js"></script>
   <script src="data/audio_timeline.js"></script>
   <script src="js/dictionary.js"></script>
   <script src="js/records.js"></script>

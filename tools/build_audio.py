@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 """
-用 macOS 內建語音（say）把聽力逐字稿合成為「一回一個」連續音檔，並產生時間軸。
-不同角色用不同口音（美、英、澳、愛爾蘭），流程比照多益：
-  Part 2：Number N → 題目 → (A)(B)(C) 三個回應 → 作答空白 5 秒
-  Part 3/4：Questions X through Y refer to … → 對話／獨白 → 逐題唸題目 → 每題作答空白 8 秒
+用 Kokoro（開源 AI 語音，Apache-2.0）把聽力逐字稿合成為「一回一個」連續音檔，並產生時間軸。
+聲音：美國／英國口音男女聲（af_ / am_ / bf_ / bm_ 開頭），每段由題目資料的 voices 指定。
+流程比照多益：
+  Part 1／2：Number N →（題目）→ (A)(B)(C)(D) → 作答空白 5 秒
+  Part 3／4：Questions X through Y refer to … → 對話／獨白 → 逐題唸題目 → 每題作答空白 8 秒
 
-用法（在專案資料夾執行，需要 macOS 與 ffmpeg：brew install ffmpeg）：
-    python3 tools/build_audio.py            # 產生所有回數
-    python3 tools/build_audio.py 2          # 只產生第 2 回
+第一次使用（模型約 350 MB，放在 ~/.cache/toeic-tts，不進 git）：
+    brew install python@3.12 ffmpeg
+    mkdir -p ~/.cache/toeic-tts && cd ~/.cache/toeic-tts
+    /opt/homebrew/bin/python3.12 -m venv venv && ./venv/bin/pip install kokoro-onnx soundfile
+    curl -LO https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+    curl -LO https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+用法（在專案資料夾）：
+    ~/.cache/toeic-tts/venv/bin/python tools/build_audio.py      # 產生所有回數
+    ~/.cache/toeic-tts/venv/bin/python tools/build_audio.py 2    # 只產生第 2 回
 輸出：audio/test{N}_listening.mp3、data/audio_timeline.js（window.BESTEP_AUDIO）
 """
 import json
@@ -16,29 +23,43 @@ import re
 import subprocess
 import sys
 import tempfile
-import wave
+
+import numpy as np
+import soundfile as sf
+from kokoro_onnx import Kokoro
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RATE = 22050
-SPEECH_RATE = '168'          # 每分鐘字數，接近多益語速
-NARRATOR = 'Eddy (English (US))'
-ANSWER_GAP = {'Part 2': 5.0, 'Part 3': 8.0, 'Part 4': 8.0}
+MODEL_DIR = os.path.expanduser('~/.cache/toeic-tts')
+RATE = 24000
+NARRATOR = 'am_michael'
+ANSWER_GAP = {'Part 1': 5.0, 'Part 2': 5.0, 'Part 3': 8.0, 'Part 4': 8.0}
+
+kokoro = Kokoro(os.path.join(MODEL_DIR, 'kokoro-v1.0.onnx'), os.path.join(MODEL_DIR, 'voices-v1.0.bin'))
 
 
 def load_tests():
-    """用 node 讀出 data/test*_listening.js（回傳 {testId: [questions]}）。"""
+    """用 node 依檔名順序載入 data/*.js，回傳 {testId: [聽力題目]}。"""
     js = r"""
       const fs = require('fs'), vm = require('vm'), path = require('path');
       const ctx = { window: {} }; vm.createContext(ctx);
       const dir = path.join(process.argv[1], 'data');
-      const files = fs.readdirSync(dir).filter((f) => /^test\d+_listening\.js$/.test(f)).sort();
-      files.forEach((f) => vm.runInContext(fs.readFileSync(path.join(dir, f), 'utf8'), ctx));
+      fs.readdirSync(dir).filter((f) => f.endsWith('.js') && f !== 'audio_timeline.js').sort()
+        .forEach((f) => vm.runInContext(fs.readFileSync(path.join(dir, f), 'utf8'), ctx));
       const out = {};
       Object.values(ctx.window.BESTEP_DATA).forEach((d) => { if (d.section === 'listening') out[d.testId] = d.questions; });
       process.stdout.write(JSON.stringify(out));
     """
     raw = subprocess.run(['node', '-e', js, ROOT], capture_output=True, text=True, check=True).stdout
     return {int(k): v for k, v in json.loads(raw).items()}
+
+
+def clean(text):
+    text = re.sub(r'^\(([A-D])\)\s*', r'\1. ', text.strip())
+    text = text.replace('[pause]', ', ')
+    # 電話號碼、編號：逐字唸（555-0192 → 5 5 5, 0 1 9 2）
+    text = re.sub(r'\b(\d{3})-(\d{4})\b', lambda m: ' '.join(m.group(1)) + ', ' + ' '.join(m.group(2)), text)
+    text = re.sub(r'\b([A-Z])-(\d{3,})\b', lambda m: m.group(1) + ', ' + ' '.join(m.group(2)), text)
+    return text
 
 
 class Builder:
@@ -48,28 +69,21 @@ class Builder:
         self.t = 0.0
         self.n = 0
 
-    def _wav_len(self, path):
-        with wave.open(path) as w:
-            return w.getnframes() / float(w.getframerate())
+    def _write(self, samples):
+        self.n += 1
+        path = os.path.join(self.tmp, 'c%05d.wav' % self.n)
+        sf.write(path, samples, RATE, subtype='PCM_16')
+        self.items.append(path)
+        self.t += len(samples) / RATE
 
     def speak(self, voice, text):
-        text = re.sub(r'^\(([A-E])\)\s*', r'\1. ', text.strip())
-        text = text.replace('[pause]', ', ')
-        self.n += 1
-        aiff = os.path.join(self.tmp, 's%04d.aiff' % self.n)
-        wav = os.path.join(self.tmp, 's%04d.wav' % self.n)
-        subprocess.run(['say', '-v', voice, '-r', SPEECH_RATE, '-o', aiff, text], check=True)
-        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', aiff, '-ac', '1', '-ar', str(RATE), '-c:a', 'pcm_s16le', wav], check=True)
-        self.items.append(wav)
-        self.t += self._wav_len(wav)
+        lang = 'en-gb' if voice.startswith('b') else 'en-us'
+        samples, sr = kokoro.create(clean(text), voice=voice, speed=1.0, lang=lang)
+        assert sr == RATE
+        self._write(np.asarray(samples, dtype=np.float32))
 
     def silence(self, seconds):
-        self.n += 1
-        wav = os.path.join(self.tmp, 'z%04d.wav' % self.n)
-        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'lavfi', '-i', 'anullsrc=r=%d:cl=mono' % RATE,
-                        '-t', '%.3f' % seconds, '-c:a', 'pcm_s16le', wav], check=True)
-        self.items.append(wav)
-        self.t += self._wav_len(wav)
+        self._write(np.zeros(int(seconds * RATE), dtype=np.float32))
 
     def export(self, out):
         lst = os.path.join(self.tmp, 'list.txt')
@@ -103,32 +117,34 @@ def build_test(test_id, questions, tmp):
     b = Builder(tmp)
     segments = []
     b.silence(1.0)
-    for group in groups_of(questions):
+    for gi, group in enumerate(groups_of(questions)):
         first = group[0]
         voices = first.get('voices') or {}
         part = first['part']
         start = b.t
         nums = [q['id'] for q in group]
-        if part == 'Part 2':
-            b.speak(NARRATOR, 'Number %d.' % first['id'])
-            b.silence(0.6)
+        if part in ('Part 1', 'Part 2'):
+            b.speak(NARRATOR, 'Number %d.' % first['id'] if part == 'Part 2' else 'Number %d. Look at the picture marked number %d in your test book.' % (first['id'], first['id']))
+            b.silence(0.7)
             for line in first['script']:
-                b.speak(voices.get(line['speaker'], 'Samantha'), line['text'])
-                b.silence(0.7)
+                b.speak(voices.get(line['speaker'], 'af_heart'), line['text'])
+                b.silence(0.6)
             b.silence(ANSWER_GAP[part])
         else:
             kind = 'conversation' if part == 'Part 3' else 'talk'
-            b.speak(NARRATOR, 'Questions %d through %d refer to the following %s.' % (nums[0], nums[-1], kind))
+            extra = ' and graphic' if first.get('figure') else ''
+            b.speak(NARRATOR, 'Questions %d through %d refer to the following %s%s.' % (nums[0], nums[-1], kind, extra))
             b.silence(1.0)
             for line in first['script']:
-                b.speak(voices.get(line['speaker'], 'Samantha'), line['text'])
-                b.silence(0.5)
+                b.speak(voices.get(line['speaker'], 'af_heart'), line['text'])
+                b.silence(0.45)
             b.silence(1.0)
             for q in group:
                 b.speak(NARRATOR, 'Number %d. %s' % (q['id'], q['question']))
                 b.silence(ANSWER_GAP[part])
         label = ('第 %d 題' % nums[0]) if len(nums) == 1 else ('第 %d–%d 題' % (nums[0], nums[-1]))
         segments.append({'start': round(start, 3), 'end': round(b.t, 3), 'kind': 'group', 'firstQ': nums[0], 'label': label})
+        print('  %s（%.0f 秒）' % (label, b.t - start), flush=True)
     os.makedirs(os.path.join(ROOT, 'audio'), exist_ok=True)
     out = os.path.join(ROOT, 'audio', 'test%d_listening.mp3' % test_id)
     b.export(out)
