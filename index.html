@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="個人多益（TOEIC）模擬測驗：原創題目、多口音語音、配速分析、單字即時查詢，並記錄每次成績與學習曲線。">
+  <meta name="theme-color" content="#f6f4ee">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%231f5f4a%27/%3E%3Ctext x=%2732%27 y=%2742%27 font-size=%2730%27 font-family=%27Arial%27 font-weight=%27700%27 text-anchor=%27middle%27 fill=%27white%27%3EB%3C/text%3E%3C/svg%3E">
+  <title>TOEIC 模擬測驗</title>
+  <link rel="preconnect" href="https://api.dictionaryapi.dev">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // 在首次繪製前套用主題，避免閃白。
+    (function () {
+      try {
+        var saved = localStorage.getItem('bestep-theme');
+        document.documentElement.setAttribute('data-theme', saved === 'dark' ? 'dark' : 'light');
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要內容</a>
+
+  <header class="app-header">
+    <div class="header-container">
+      <a class="brand" href="#" data-action="go-lobby" aria-label="回到考試大廳">
+        <span class="brand-badge">TOEIC</span>
+        <span class="brand-text">
+          <strong>多益模擬測驗</strong>
+          <small>全真模擬考 · 共兩回</small>
+        </span>
+      </a>
+
+      <nav class="header-nav" aria-label="主要選單">
+        <button type="button" class="header-btn" data-action="go-lobby">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+          <span>考試大廳</span>
+        </button>
+        <button type="button" class="header-btn" data-action="open-volume-test" id="headerVolumeBtn" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm13.5-1.5a5 5 0 0 1 0 9M20 5a9 9 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>音量測試</span>
+        </button>
+        <button type="button" class="header-btn theme-btn" data-action="toggle-theme" id="themeToggle" title="切換護眼淺色／深色" aria-label="切換護眼淺色或深色主題">
+          <span class="theme-icon" aria-hidden="true">☾</span>
+          <span class="theme-label">深色</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="main-wrapper">
+    <!-- ============================ 考試大廳 ============================ -->
+    <section id="lobbyView" class="view" aria-labelledby="lobbyTitle">
+      <div class="lobby-hero">
+        <span class="eyebrow">TOEIC · 個人練習站</span>
+        <h1 id="lobbyTitle">多益，每次都看得到進步。</h1>
+        <p>原創多益題目，依正式流程播放、計時、閱卷；每做一次就自動記錄分數、用時與日期，畫出你的學習曲線。</p>
+        <div class="hero-stats">
+          <div class="hero-stat"><strong>Part 2–7</strong><span>多益題型</span></div>
+          <div class="hero-stat"><strong>60</strong><span>題／回（半量）</span></div>
+          <div class="hero-stat"><strong>990</strong><span>估計總分</span></div>
+          <div class="hero-stat"><strong>📈</strong><span>成績紀錄</span></div>
+        </div>
+      </div>
+
+      <div id="testCards" class="cards-grid" aria-live="polite"></div>
+
+      <section id="historyPanel" class="history-panel" aria-labelledby="historyTitle"></section>
+
+      <section class="lobby-features" aria-labelledby="featureTitle">
+        <div class="section-heading">
+          <h2 id="featureTitle">擬真考場設計</h2>
+          <p>從預讀倒數到逐題配速，盡量貼近正式測驗節奏。</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-icon">🔊</div>
+            <h3>多口音語音連續播放</h3>
+            <p>美、英、澳、愛爾蘭口音輪流出現，比照多益流程：Part 2 選項只用聽的、Part 3／4 會唸題目並留作答時間。可跳過等待、切換 1.2× 語速。</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">⏱️</div>
+            <h3>每題停留時間</h3>
+            <p>閱讀時上方圓盤倒數本題組建議時間；交卷後對照 Part 5／6／7 建議配速，標示超時題目。</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">📖</div>
+            <h3>左文右題閱讀</h3>
+            <p>閱讀測驗採雙欄固定捲動，文章與題目各自獨立閱讀，長篇也不失焦。</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🔎</div>
+            <h3>點單字即時翻譯</h3>
+            <p>檢討模式把英文內容逐字包成可點擊單元，顯示音標、詞性、多義翻譯與發音。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="lobby-note">
+        <strong>使用說明</strong>
+        <p>題目為原創多益題型（非官方試題），分數為依答對率換算的<b>估計分數</b>，僅供練習參考。成績紀錄存在這台裝置；在下方「雲端同步」連結 GitHub 後，手機、平板、電腦會共用同一份紀錄。</p>
+      </section>
+    </section>
+
+    <!-- ============================ 測驗區 ============================ -->
+    <section id="examView" class="view" hidden aria-labelledby="examHeading">
+      <h2 id="examHeading" class="sr-only">測驗進行中</h2>
+
+      <div class="exam-topbar">
+        <div class="exam-identity">
+          <span class="exam-test-label" id="examTestLabel">模擬試題</span>
+          <span class="pill pill-soft" id="examModeLabel">完整測驗</span>
+        </div>
+
+        <div class="exam-progress-wrap">
+          <div class="exam-progress" role="progressbar" aria-label="作答進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="examProgressBar">
+            <div id="examProgressFill"></div>
+          </div>
+          <span class="exam-progress-text" id="examProgressText">0 / 60 題</span>
+        </div>
+
+        <div class="exam-clock" id="examClock" data-state="normal" aria-live="polite">
+          <span class="clock-label" id="clockLabel">剩餘時間</span>
+          <strong id="clockValue">50:00</strong>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm pause-btn" id="pauseBtn" data-action="toggle-pause" aria-pressed="false" hidden>⏸ 暫停</button>
+        <button type="button" class="pace-dial" id="paceDial" data-action="pace-info" title="本題組建議作答時間（點一下看說明）" hidden></button>
+
+        <div class="exam-top-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="toggle-answer-card" id="answerCardToggle" aria-controls="answerRail" aria-expanded="true">
+            答題卡
+          </button>
+          <button type="button" class="btn btn-danger-ghost btn-sm" data-action="confirm-submit">交卷</button>
+        </div>
+      </div>
+
+      <div class="section-tabs" id="sectionTabs" role="tablist" aria-label="測驗分區">
+        <button type="button" role="tab" data-section="listening" id="tabListening" aria-selected="true">
+          <span class="tab-dot"></span>聽力測驗
+          <span class="tab-meta" id="tabListenStatus">未開始</span>
+        </button>
+        <button type="button" role="tab" data-section="reading" id="tabReading" aria-selected="false">
+          <span class="tab-dot"></span>閱讀測驗
+          <span class="tab-meta" id="tabReadStatus">未開始</span>
+        </button>
+      </div>
+
+      <div class="exam-layout">
+        <div class="exam-main" id="examMain"></div>
+
+        <aside class="answer-rail" id="answerRail" aria-label="答題卡">
+          <div class="answer-card">
+            <div class="answer-card-head">
+              <div>
+                <h3 id="answerCardTitle">答題卡</h3>
+                <p class="answer-card-sub" id="answerCardSub">點選題號快速跳題</p>
+              </div>
+              <span class="answer-count" id="answerCount">0/30</span>
+            </div>
+            <div class="answer-grid" id="answerGrid"></div>
+            <div class="answer-legend">
+              <span><i class="legend-dot answered"></i>已答</span>
+              <span><i class="legend-dot flagged"></i>標記</span>
+              <span><i class="legend-dot current"></i>目前</span>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" data-action="confirm-submit">交卷並閱卷</button>
+            <p class="answer-hint">交卷後將顯示成績、逐題詳解與配速分析。</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============================ 檢討區 ============================ -->
+    <section id="reviewView" class="view" hidden aria-labelledby="reviewHeading">
+      <h2 id="reviewHeading" class="sr-only">測驗檢討</h2>
+      <div id="scoreHero"></div>
+
+      <div class="review-toolbar">
+        <div class="review-tabs" id="reviewTabs" role="tablist" aria-label="檢討篩選">
+          <button type="button" class="review-tab active" role="tab" data-filter="all" aria-selected="true">全部題目</button>
+          <button type="button" class="review-tab" role="tab" data-filter="wrong" aria-selected="false">只看答錯</button>
+          <button type="button" class="review-tab" role="tab" data-filter="listening" aria-selected="false">聽力</button>
+          <button type="button" class="review-tab" role="tab" data-filter="reading" aria-selected="false">閱讀</button>
+          <button type="button" class="review-tab" role="tab" data-filter="pacing" aria-selected="false">配速分析</button>
+        </div>
+        <div class="review-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="open-dict-hint">🔎 點單字查詢</button>
+          <button type="button" class="btn btn-primary btn-sm" data-action="restart">再測一次</button>
+        </div>
+      </div>
+
+      <div id="pacingSummary"></div>
+      <div id="reviewContent" class="review-list"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <span>TOEIC 模擬測驗 · 個人練習站</span>
+      <span>原創題目；語音由電腦合成。分數為估計值。</span>
+    </div>
+  </footer>
+
+  <!-- ============================ 單字查詢側邊欄 ============================ -->
+  <div class="dict-backdrop" id="dictBackdrop" hidden></div>
+  <aside class="dict-sidebar" id="dictPanel" aria-hidden="true" aria-labelledby="dictWord" role="dialog" aria-modal="false">
+    <div class="dict-head">
+      <div class="dict-title-wrap">
+        <span class="dict-kicker">單字查詢</span>
+        <h2 class="dict-word" id="dictWord">—</h2>
+        <div class="dict-meta">
+          <span class="dict-phonetic" id="dictPhonetic"></span>
+          <button type="button" class="dict-speak" id="dictSpeak" title="朗讀單字" aria-label="朗讀單字">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm13.5-1.5a5 5 0 0 1 0 9M20 5a9 9 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <button type="button" class="dict-close" id="dictClose" aria-label="關閉單字查詢">×</button>
+    </div>
+    <div class="dict-body" id="dictBody">
+      <div class="dict-empty">
+        <p>在檢討模式點擊任何英文單字，這裡會顯示音標、詞性與繁體中文釋義。</p>
+      </div>
+    </div>
+    <div class="dict-foot">
+      <span class="dict-source" id="dictSource">內建字庫</span>
+      <span class="dict-note">線上備援：Free Dictionary API / MyMemory</span>
+    </div>
+  </aside>
+
+  <!-- ============================ 開始測驗 Modal ============================ -->
+  <div class="pause-overlay" id="pauseOverlay" hidden role="dialog" aria-modal="true" aria-label="測驗已暫停">
+    <div class="pause-card">
+      <div class="pause-icon">⏸</div>
+      <h2>測驗已暫停</h2>
+      <p>計時已停止；聽力音檔也會停在目前位置。<br>按下方按鈕就從暫停的地方繼續。</p>
+      <button type="button" class="btn btn-primary" data-action="resume-exam">▶ 繼續作答</button>
+    </div>
+  </div>
+
+  <div class="fig-zoom" id="figZoom" hidden role="dialog" aria-modal="true" aria-label="放大圖表">
+    <div class="fig-zoom-bar">
+      <button type="button" class="btn btn-secondary btn-sm" data-action="zoom-out" aria-label="縮小">－</button>
+      <span id="figZoomLevel">100%</span>
+      <button type="button" class="btn btn-secondary btn-sm" data-action="zoom-in" aria-label="放大">＋</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-action="zoom-reset">原尺寸</button>
+      <button type="button" class="btn btn-primary btn-sm" data-action="zoom-close">關閉 ✕</button>
+    </div>
+    <div class="fig-zoom-scroll" id="figZoomScroll">
+      <div class="fig-zoom-stage" id="figZoomStage"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="startModal" hidden>
+    <div class="modal-content modal-lg" role="dialog" aria-modal="true" aria-labelledby="startModalTitle">
+      <div class="modal-head">
+        <div>
+          <span class="modal-kicker" id="startModalKicker">模擬試題 第一回</span>
+          <h2 id="startModalTitle">選擇測驗模式</h2>
+        </div>
+        <button type="button" class="modal-close" data-action="close-modal" aria-label="關閉">×</button>
+      </div>
+
+      <div class="mode-options" id="modeOptions" role="radiogroup" aria-label="測驗模式">
+        <label class="mode-card">
+          <input type="radio" name="examMode" value="full" checked>
+          <span class="mode-card-body">
+            <strong>完整測驗</strong>
+            <small>聽力 30 題 ＋ 閱讀 30 題，依正式流程連續進行。</small>
+            <em>約 40 分鐘</em>
+          </span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="examMode" value="listening">
+          <span class="mode-card-body">
+            <strong>只考聽力</strong>
+            <small>官方原音連續播放，不可暫停；適合完整練耳。</small>
+            <em>約 12 分鐘</em>
+          </span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="examMode" value="reading">
+          <span class="mode-card-body">
+            <strong>只考閱讀</strong>
+            <small>25 分鐘倒數，完整記錄每題停留配速。</small>
+            <em>25 分鐘</em>
+          </span>
+        </label>
+      </div>
+
+      <div class="volume-panel">
+        <div class="volume-copy">
+          <strong>先確認聽得清楚</strong>
+          <p id="volumeStatus">播放官方音檔開頭約 10 秒，確認音量。正式測驗中不可暫停或回放。<br><small>📱 iPhone 請先關閉「靜音模式」（側邊開關／勿擾），並先按一次此按鈕確認有聲音。</small></p>
+        </div>
+        <button type="button" class="btn btn-secondary" data-action="volume-test" id="volumeTestBtn">🔊 播放音量測試</button>
+      </div>
+
+      <div class="exam-rules">
+        <div><span>01</span>聽力按下開始後連續播放約 12 分鐘；可跳過作答空白、切換語速，播放中可自由切換題目。</div>
+        <div><span>02</span>閱讀測驗倒數 25 分鐘，時間到自動交卷。</div>
+        <div><span>03</span>複選題需選滿指定數量，全對才給分。</div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-action="close-modal">取消</button>
+        <button type="button" class="btn btn-primary" data-action="start-exam" id="startExamBtn">開始測驗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ 交卷確認 Modal ============================ -->
+  <div class="modal-overlay" id="submitModal" hidden>
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="submitModalTitle">
+      <div class="modal-head">
+        <div>
+          <span class="modal-kicker">確認交卷</span>
+          <h2 id="submitModalTitle">要結束本次測驗嗎？</h2>
+        </div>
+        <button type="button" class="modal-close" data-action="close-modal" aria-label="關閉">×</button>
+      </div>
+      <div id="submitSummary" class="submit-summary"></div>
+      <p class="modal-note">交卷後將立即閱卷，並進入詳解檢討模式；作答紀錄與配速分析會保留到重新開始為止。</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-action="close-modal">繼續作答</button>
+        <button type="button" class="btn btn-danger" data-action="submit-exam">確定交卷</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ 聽力結束 Modal ============================ -->
+  <div class="modal-overlay" id="listeningDoneModal" hidden>
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="listeningDoneTitle">
+      <div class="modal-head">
+        <div>
+          <span class="modal-kicker">聽力測驗結束</span>
+          <h2 id="listeningDoneTitle">耳朵休息一下</h2>
+        </div>
+        <button type="button" class="modal-close" data-action="close-modal" aria-label="關閉">×</button>
+      </div>
+      <p class="modal-note" id="listeningDoneText">聽力測驗已完成。接下來是 50 分鐘的閱讀測驗，倒數將在按下按鈕後開始。</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-action="close-modal">稍後</button>
+        <button type="button" class="btn btn-ghost" data-action="submit-listening-only">只交聽力</button>
+        <button type="button" class="btn btn-primary" data-action="start-reading">進入閱讀測驗</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="data/test1_listening.js"></script>
+  <script src="data/test1_reading.js"></script>
+  <script src="data/audio_timeline.js"></script>
+  <script src="js/dictionary.js"></script>
+  <script src="js/records.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

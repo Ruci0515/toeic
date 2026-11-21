@@ -1,0 +1,7 @@
+# 系統雜檔
+.DS_Store
+Thumbs.db
+
+# 測試截圖與記錄
+/tests/screenshots/
+*.log
