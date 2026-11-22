@@ -190,6 +190,20 @@ async function checkMobile() {
     check(await overflow() <= 1, '大廳無水平捲動');
     await shot('t01-lobby.png');
 
+    // 每一回都能開始：題數 200、Part 1 照片與音檔是該回自己的
+    for (let id = 2; id <= lobby.cards; id += 1) {
+      await evaluate('window.BESTEP_APP.startExam(' + id + ', "full")');
+      await sleep(400);
+      const tn = await evaluate(`(() => {
+        const s = window.BESTEP_APP.getState();
+        const img = document.querySelector('.question-card img, .figure-card img');
+        return { n: s.sections.listening.questions.length + s.sections.reading.questions.length,
+          img: img ? img.getAttribute('src') : '', audio: (s.official && s.official.timeline && s.official.timeline.src) || '' };
+      })()`);
+      check(tn.n === 200 && new RegExp('t' + id + '_1').test(tn.img) && new RegExp('test' + id + '_').test(tn.audio),
+        'Test ' + id + '：200 題、Part 1 照片與聽力音檔都是本回的', JSON.stringify(tn));
+    }
+
     // 完整測驗：聽力
     await evaluate('window.BESTEP_APP.startExam(1, "full")');
     await sleep(500);

@@ -12,7 +12,7 @@
 | `js/app.js` | 測驗引擎：出題、計時、聽力播放、閱卷、檢討、估分（`toeicScale`）、交卷時發出 `exam:submitted` 事件 |
 | `js/records.js` | 成績紀錄（localStorage `toeic-records-v1`）、學習曲線、GitHub Gist 同步（`toeic-sync-v1` 存 token 與 gistId） |
 | `js/dictionary.js` | 單字查詢（內建字庫＋線上辭典） |
-| `data/test1_0meta.js` … `test1_9end.js` | Test 1 題庫：0meta（共用函式）、1l（Part 1–2）、2l（Part 3）、3l（Part 4）、4r（Part 5–6）、5r（Part 7 單篇）、6r（Part 7 多篇）、9end（排序並產生註解／單字索引） |
+| `data/testN_0meta.js` … `testN_9end.js` | 第 N 回題庫：0meta（共用函式）、1l（Part 1–2）、2l（Part 3）、3l（Part 4）、4r（Part 5–6）、5r（Part 7 單篇）、6r（Part 7 多篇）、9end（排序並產生註解／單字索引） |
 | `data/audio_timeline.js` | 由 `tools/build_audio.py` 產生的音檔時間軸與空白偵測 |
 | `audio/testN_listening.mp3` | 合成的聽力音檔 |
 | `tests/verify.js` | 自動驗收 |
@@ -37,10 +37,12 @@
 
 ## 新增第 N 回
 
-1. 複製 `data/test1_*.js` 改成 `test2_*`，0meta 裡的 `test1Listening`／`test1Reading`／`TOEIC_T1` 改成 2，9end 的 `'1L'`／`'1R'` 改成 `'2L'`／`'2R'`。
-2. `js/app.js` 的 `TEST_META` 加上 `{ id: 2, label: 'Test 2', files: {...} }`。
-3. `index.html` 加上兩個 `<script src="data/test2_….js">`。
-4. `~/.cache/toeic-tts/venv/bin/python tools/build_audio.py 2` 產生音檔。
-5. `node tests/verify.js` 全部通過後 `./sync.sh "新增 Test 2"`。
+目前有 Test 1、Test 2。以下以新增第 3 回為例：
+
+1. 複製 `data/test2_*.js` 改成 `test3_*`，0meta 裡的 `test2Listening`／`test2Reading`／`TOEIC_T2`／`testId: 2` 改成 3，9end 的 `'2L'`／`'2R'` 改成 `'3L'`／`'3R'`。Part 1 照片放 `images/p1/t3_N.jpg` 並在 CREDITS.md 補上出處。
+2. `js/app.js` 的 `TEST_META` 加上 `{ id: 3, label: 'Test 3', files: {...} }`。
+3. `index.html` 加上八個 `<script src="data/test3_….js">`（放在 test2_9end 之後）。
+4. `~/.cache/toeic-tts/venv/bin/python tools/build_audio.py 3` 產生音檔（只重做第 3 回，其他回的時間軸保留）。
+5. `node tests/verify.js` 全部通過後 `./sync.sh "新增 Test 3"`。
 
 題目必須是原創，不可抓取或複製官方、出版社、補習班的題庫（倉庫是公開的）。

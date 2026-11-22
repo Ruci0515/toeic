@@ -27,7 +27,8 @@
   const FIGURE_COLORS = ['var(--primary)', 'var(--accent)', 'var(--warning)', 'var(--purple)', '#dc7f9b', '#58a6a0'];
 
   const TEST_META = [
-    { id: 1, label: 'Test 1', files: { listening: 'data/test1_1l.js', reading: 'data/test1_4r.js' } }
+    { id: 1, label: 'Test 1', files: { listening: 'data/test1_1l.js', reading: 'data/test1_4r.js' } },
+    { id: 2, label: 'Test 2', files: { listening: 'data/test2_1l.js', reading: 'data/test2_4r.js' } }
   ];
 
   const state = {
